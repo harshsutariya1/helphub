@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -22,8 +23,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  String _getErrorMessage(Object? error) {
+    if (error is AuthException) {
+      // Map arbitrary sub-codes or message contents safely
+      final lowerMsg = error.message.toLowerCase();
+      if (lowerMsg.contains('wrong password') ||
+          lowerMsg.contains('invalid login credentials')) {
+        return 'Incorrect email or password.';
+      }
+      if (lowerMsg.contains('user not found')) {
+        return 'No user found with this email.';
+      }
+      return error.message;
+    }
+    return 'An unexpected error occurred. Please try again.';
+  }
+
   void _submit() {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       ref
           .read(authControllerProvider.notifier)
           .signInWithEmailPassword(
@@ -39,7 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!state.isLoading && state.hasError) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(state.error.toString())));
+        ).showSnackBar(SnackBar(content: Text(_getErrorMessage(state.error))));
       }
     });
 

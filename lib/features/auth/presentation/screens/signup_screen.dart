@@ -23,7 +23,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   void _submit() {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       ref
           .read(authControllerProvider.notifier)
           .signUpWithEmailPassword(

@@ -30,7 +30,9 @@ class AuthRepository {
     return await _supabase.auth.signUp(email: email, password: password);
   }
 
-  Future<void> signInWithGoogle() async {}
+  Future<void> signInWithGoogle() async {
+    throw UnimplementedError('signInWithGoogle() not implemented');
+  }
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
