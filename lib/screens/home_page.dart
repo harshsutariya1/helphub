@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/auth/data/auth_repository.dart';
-import '../features/auth/presentation/controllers/auth_controller.dart';
+import 'package:helphub/services/auth_repository.dart';
+import 'package:helphub/controllers/auth_controller.dart';
 
 class MyHomePage extends ConsumerWidget {
   const MyHomePage({super.key});
