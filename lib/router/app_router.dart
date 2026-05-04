@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../features/auth/data/auth_repository.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/signup_screen.dart';
-import '../../src/home_page.dart';
+import 'package:helphub/services/auth_repository.dart';
+import 'package:helphub/screens/login_screen.dart';
+import 'package:helphub/screens/signup_screen.dart';
+import 'package:helphub/screens/home_page.dart';
 
 part 'app_router.g.dart';
 

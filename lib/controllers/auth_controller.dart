@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../data/auth_repository.dart';
+import 'package:helphub/services/auth_repository.dart';
 
 part 'auth_controller.g.dart';
 
