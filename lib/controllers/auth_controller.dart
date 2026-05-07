@@ -1,42 +1,67 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:helphub/services/auth_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
+import 'package:helphub/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:helphub/utils/logger.dart';
 
-part 'auth_controller.g.dart';
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  final authService = ref.watch(authServiceProvider);
+  return authService.authStateChanges;
+});
 
-@riverpod
-class AuthController extends _$AuthController {
-  @override
-  FutureOr<void> build() {}
+final currentUserProvider = Provider<User?>((ref) {
+  final authState = ref.watch(authStateProvider).value;
+  return authState?.session?.user ?? ref.read(authServiceProvider).currentUser;
+});
 
-  Future<void> signInWithEmailPassword(String email, String password) async {
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
+      final authService = ref.watch(authServiceProvider);
+      return AuthController(authService);
+    });
+
+class AuthController extends StateNotifier<AsyncValue<void>> {
+  final AuthService _authService;
+
+  AuthController(this._authService) : super(const AsyncValue.data(null));
+
+  Future<void> login(String email, String password) async {
+    logger.d('⚙️ Auth controller: login initiated');
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref
-          .read(authRepositoryProvider)
-          .signInWithEmailPassword(email, password),
-    );
+    try {
+      await _authService.signInWithEmailPassword(email, password);
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      logger.w('⚠️ Auth controller: login failed');
+      state = AsyncValue.error(e, st);
+    }
   }
 
-  Future<void> signUpWithEmailPassword(String email, String password) async {
+  Future<void> signup(String email, String password, String fullName) async {
+    logger.d('⚙️ Auth controller: signup initiated');
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref
-          .read(authRepositoryProvider)
-          .signUpWithEmailPassword(email, password),
-    );
+    try {
+      await _authService.signUpWithEmailPassword(
+        email,
+        password,
+        fullName: fullName,
+      );
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      logger.w('⚠️ Auth controller: signup failed');
+      state = AsyncValue.error(e, st);
+    }
   }
 
-  Future<void> signInWithGoogle() async {
+  Future<void> logout() async {
+    logger.d('⚙️ Auth controller: logout initiated');
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signInWithGoogle(),
-    );
-  }
-
-  Future<void> signOut() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).signOut(),
-    );
+    try {
+      await _authService.signOut();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      logger.w('⚠️ Auth controller: logout failed');
+      state = AsyncValue.error(e, st);
+    }
   }
 }

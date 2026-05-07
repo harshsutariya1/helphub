@@ -3,22 +3,31 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:helphub/router/app_router.dart';
+import 'package:helphub/utils/logger.dart';
 
 void main() async {
-  setup().then((_) {
-    runApp(ProviderScope(child: MyApp()));
-  });
-}
+  try {
+    logger.i('🚀 Starting application initialization...');
+    WidgetsFlutterBinding.ensureInitialized();
 
-Future<void> setup() async {
-  WidgetsFlutterBinding.ensureInitialized();
+    await dotenv.load(fileName: ".env");
+    logger.d('✅ Environment variables loaded successfully.');
 
-  await dotenv.load(fileName: ".env");
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL']!,
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    );
+    logger.d('✅ Supabase initialized successfully.');
 
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-  );
+    logger.i('🎉 Application initialization complete. Running app...');
+    runApp(const ProviderScope(child: MyApp()));
+  } catch (e, stackTrace) {
+    logger.f(
+      '❌ Failed to initialize application',
+      error: e,
+      stackTrace: stackTrace,
+    );
+  }
 }
 
 class MyApp extends ConsumerWidget {
@@ -29,12 +38,10 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
+      title: 'HelpHub',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
     );
   }
 }

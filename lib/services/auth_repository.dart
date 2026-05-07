@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:helphub/services/supabase_provider.dart';
+import 'package:helphub/models/user_profile.dart'; // Replaced app_user.dart with user_profile.dart
 
 part 'auth_repository.g.dart';
 
@@ -11,7 +12,11 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
-  User? get currentUser => _supabase.auth.currentUser;
+  UserProfile? get currentUser {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+    return user.toUserProfile();
+  }
 
   Future<AuthResponse> signInWithEmailPassword(
     String email,
@@ -30,8 +35,8 @@ class AuthRepository {
     return await _supabase.auth.signUp(email: email, password: password);
   }
 
-  Future<void> signInWithGoogle() async {
-    throw UnimplementedError('signInWithGoogle() not implemented');
+  Future<AuthResponse?> signInWithGoogle() async {
+    return null;
   }
 
   Future<void> signOut() async {

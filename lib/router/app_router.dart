@@ -1,57 +1,82 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:helphub/services/auth_repository.dart';
+import 'package:helphub/controllers/auth_controller.dart';
+import 'package:helphub/services/auth_service.dart';
+import 'package:helphub/screens/splash_screen.dart';
 import 'package:helphub/screens/login_screen.dart';
 import 'package:helphub/screens/signup_screen.dart';
-import 'package:helphub/screens/home_page.dart';
+import 'package:helphub/screens/home_screen.dart';
+import 'package:helphub/screens/profile_screen.dart';
+import 'package:helphub/utils/logger.dart';
 
-part 'app_router.g.dart';
-
-class GoRouterRefreshNotifier extends ChangeNotifier {
-  GoRouterRefreshNotifier(Ref ref) {
-    ref.listen(authStateProvider, (_, _) {
-      notifyListeners();
-    });
-  }
-}
-
-@Riverpod(keepAlive: true)
-GoRouter appRouter(Ref ref) {
-  final refreshNotifier = GoRouterRefreshNotifier(ref);
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/',
-    refreshListenable: refreshNotifier,
+    initialLocation: '/splash',
+    refreshListenable: _GoRouterRefreshStream(
+      ref.watch(authServiceProvider).authStateChanges,
+    ),
     redirect: (context, state) {
-      final authState = ref.read(authStateProvider);
+      // If authState is loading, keep on splash screen
+      if (authState.isLoading) return '/splash';
 
-      if (authState.isLoading || !authState.hasValue) {
-        return null; // Don't redirect while auth state is loading
-      }
-
-      final isAuthenticated = authState.value?.session != null;
-      final isAuthRoute =
+      final user = ref.read(currentUserProvider);
+      final isLoggedIn = user != null;
+      final isGoingToAuth =
           state.matchedLocation == '/login' ||
-          state.matchedLocation == '/signup';
+          state.matchedLocation == '/signup' ||
+          state.matchedLocation == '/splash';
 
-      if (!isAuthenticated && !isAuthRoute) {
+      // Redirect based on auth state
+      if (!isLoggedIn && !isGoingToAuth) {
+        logger.i(
+          '🚦 Navigation: Redirecting unauthenticated user to /login from ${state.matchedLocation}',
+        );
         return '/login';
       }
-
-      if (isAuthenticated && isAuthRoute) {
-        return '/';
+      if (isLoggedIn && isGoingToAuth) {
+        logger.i(
+          '🚦 Navigation: Redirecting authenticated user to /home from ${state.matchedLocation}',
+        );
+        return '/home';
       }
 
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const MyHomePage()),
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
       ),
+      GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
     ],
   );
+});
+
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen(
+      (dynamic _) => notifyListeners(),
+    );
+  }
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
 }
