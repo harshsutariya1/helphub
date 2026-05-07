@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../controllers/auth_controller.dart';
+import 'package:helphub/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -12,9 +11,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -23,116 +23,127 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  String _getErrorMessage(Object? error) {
-    if (error is AuthException) {
-      // Map arbitrary sub-codes or message contents safely
-      final lowerMsg = error.message.toLowerCase();
-      if (lowerMsg.contains('wrong password') ||
-          lowerMsg.contains('invalid login credentials')) {
-        return 'Incorrect email or password.';
-      }
-      if (lowerMsg.contains('user not found')) {
-        return 'No user found with this email.';
-      }
-      return error.message;
-    }
-    return 'An unexpected error occurred. Please try again.';
-  }
+  Future<void> _login() async {
+    // Dismiss keyboard on submit
+    FocusScope.of(context).unfocus();
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      ref
-          .read(authControllerProvider.notifier)
-          .signInWithEmailPassword(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
+    if (!_formKey.currentState!.validate()) return;
+
+    await ref
+        .read(authControllerProvider.notifier)
+        .login(_emailController.text.trim(), _passwordController.text);
+
+    if (mounted && ref.read(authControllerProvider).hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ref.read(authControllerProvider).error.toString()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue>(authControllerProvider, (_, state) {
-      if (!state.isLoading && state.hasError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_getErrorMessage(state.error))));
-      }
-    });
-
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
 
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Welcome Back',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Login')),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(Icons.lock_outline, size: 80, color: Colors.blue),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _emailController,
+                    enabled: !isLoading,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      // Basic email validation
+                      if (!RegExp(
+                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+                      ).hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    enabled: !isLoading,
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const [AutofillHints.password],
+                    onFieldSubmitted: (_) => _login(),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
                   ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) => value != null && value.contains('@')
-                      ? null
-                      : 'Enter a valid email',
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 32),
+                  FilledButton(
+                    onPressed: isLoading ? null : _login,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Login', style: TextStyle(fontSize: 16)),
                   ),
-                  obscureText: true,
-                  validator: (value) => value != null && value.length >= 6
-                      ? null
-                      : 'Password must be at least 6 characters',
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: isLoading ? null : () => context.go('/signup'),
+                    child: const Text('Don\'t have an account? Sign up'),
                   ),
-                  child: isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Login'),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: isLoading
-                      ? null
-                      : () => ref
-                            .read(authControllerProvider.notifier)
-                            .signInWithGoogle(),
-                  icon: const Icon(Icons.g_mobiledata, size: 28),
-                  label: const Text('Continue with Google'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () => context.go('/signup'),
-                  child: const Text('Don\'t have an account? Sign Up'),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
