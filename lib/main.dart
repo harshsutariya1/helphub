@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,10 +7,29 @@ import 'package:helphub/router/app_router.dart';
 import 'package:helphub/utils/logger.dart';
 
 void main() async {
+  // Global error handling for Dart errors outside the Flutter framework
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.f('🚨 Uncaught Platform Error', error: error, stackTrace: stack);
+    // TODO: Send to Crashlytics or Sentry here in production
+    return true; // Prevents the app from crashing entirely if possible
+  };
+
   try {
     logger.i('🚀 Starting application initialization...');
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Global error handling for Flutter framework errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      logger.f(
+        '🚨 Flutter Framework Error',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
+      // TODO: Send to Crashlytics or Sentry here in production
+      FlutterError.presentError(details);
+    };
+
+    // Load environment variables (consider multiple .env files for dev/stg/prod)
     await dotenv.load(fileName: ".env");
     logger.d('✅ Environment variables loaded successfully.');
 
