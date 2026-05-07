@@ -37,19 +37,21 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  Future<void> signup(String email, String password, String fullName) async {
+  Future<bool> signup(String email, String password, String fullName) async {
     logger.d('⚙️ Auth controller: signup initiated');
     state = const AsyncValue.loading();
     try {
-      await _authService.signUpWithEmailPassword(
+      final response = await _authService.signUpWithEmailPassword(
         email,
         password,
         fullName: fullName,
       );
       state = const AsyncValue.data(null);
+      return response.session == null && response.user != null;
     } catch (e, st) {
       logger.w('⚠️ Auth controller: signup failed');
       state = AsyncValue.error(e, st);
+      return false;
     }
   }
 

@@ -31,7 +31,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    await ref
+    final requiresEmailVerification = await ref
         .read(authControllerProvider.notifier)
         .signup(
           _emailController.text.trim(),
@@ -39,12 +39,34 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           _fullNameController.text.trim(),
         );
 
-    if (mounted && ref.read(authControllerProvider).hasError) {
+    if (!mounted) return;
+
+    if (ref.read(authControllerProvider).hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ref.read(authControllerProvider).error.toString()),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (requiresEmailVerification) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Verify your email'),
+          content: const Text(
+            'We have sent a verification link to your email address. Please verify your email to continue.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.go('/login');
+              },
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
     }
