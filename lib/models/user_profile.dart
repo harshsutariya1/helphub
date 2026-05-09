@@ -9,7 +9,9 @@ abstract class UserProfile with _$UserProfile {
   const factory UserProfile({
     required String id,
     String? email,
+    String? username,
     String? fullName,
+    String? phoneNumber,
     String? avatarUrl,
     DateTime? createdAt,
   }) = _UserProfile;
@@ -24,9 +26,11 @@ extension SupabaseUserMapper on supabase.User {
     return UserProfile(
       id: id,
       email: email,
+      username: userMetadata?['username'] as String?,
       fullName:
           userMetadata?['name'] as String? ??
           userMetadata?['full_name'] as String?,
+      phoneNumber: userMetadata?['phone'] as String? ?? phone,
       avatarUrl: userMetadata?['avatar_url'] as String?,
       // Note: createdAt can be populated if needed, or fetched from DB
     );
