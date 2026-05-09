@@ -19,9 +19,26 @@ class StorageService {
     required File file,
   }) async {
     try {
-      final fileExtension = file.path.split('.').last.toLowerCase();
-      final fileName =
-          'avatar_$userId.${fileExtension == 'jpg' || fileExtension == 'jpeg' ? 'jpeg' : 'png'}';
+      final pathParts = file.path.split('.');
+      final rawExtension = pathParts.length > 1 ? pathParts.last.toLowerCase() : '';
+
+      // Normalize and validate extension
+      String fileExtension;
+      if (rawExtension == 'jpg' || rawExtension == 'jpeg') {
+        fileExtension = 'jpeg';
+      } else if (rawExtension == 'png') {
+        fileExtension = 'png';
+      } else if (rawExtension == 'gif') {
+        fileExtension = 'gif';
+      } else if (rawExtension == 'webp') {
+        fileExtension = 'webp';
+      } else {
+        // Default to png for unknown or missing extensions
+        logger.w('Unknown or missing file extension: $rawExtension, defaulting to png');
+        fileExtension = 'png';
+      }
+
+      final fileName = 'avatar_$userId.$fileExtension';
       final path = '$userId/$fileName';
 
       logger.i('📤 Uploading avatar to Supabase Storage: $path');
@@ -40,7 +57,7 @@ class StorageService {
       // Append a timestamp to avoid local caching issues in the UI
       final publicUrl = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
 
-      logger.i('✅ Avatar uploaded successfully. Public URL: $publicUrl');
+      logger.i('✅ Avatar uploaded successfully');
       return publicUrl;
     } catch (e, st) {
       logger.e('🛑 Failed to upload avatar', error: e, stackTrace: st);

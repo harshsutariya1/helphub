@@ -50,22 +50,33 @@ class ProfileAvatar extends StatelessWidget {
           Positioned(
             bottom: 0,
             right: 0,
-            child: GestureDetector(
-              onTap: onEdit,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.surface,
-                    width: 2,
+            child: Semantics(
+              button: true,
+              label: 'Edit avatar',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onEdit,
+                  customBorder: const CircleBorder(),
+                  child: Tooltip(
+                    message: 'Edit avatar',
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.surface,
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt,
+                        size: radius * 0.4,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
                   ),
-                ),
-                child: Icon(
-                  Icons.camera_alt,
-                  size: radius * 0.4,
-                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ),

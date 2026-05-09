@@ -24,6 +24,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   File? _selectedAvatarFile;
   final _imagePicker = ImagePicker();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -61,13 +62,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Failed to pick image. Please try again.')));
       }
     }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
       await ref
@@ -89,7 +95,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Failed to update profile. Please try again.')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -142,11 +154,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
                 const SizedBox(height: 32),
                 FilledButton(
-                  onPressed: isLoading ? null : _submit,
+                  onPressed: (isLoading || _isSubmitting) ? null : _submit,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: isLoading
+                  child: (isLoading || _isSubmitting)
                       ? const SizedBox(
                           height: 24,
                           width: 24,

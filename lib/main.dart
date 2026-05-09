@@ -57,7 +57,8 @@ Future<void> _initializeDependencies() async {
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
 
-  if (supabaseUrl == null || supabaseAnonKey == null) {
+  if (supabaseUrl == null || supabaseUrl.trim().isEmpty ||
+      supabaseAnonKey == null || supabaseAnonKey.trim().isEmpty) {
     throw Exception('Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env file.');
   }
 

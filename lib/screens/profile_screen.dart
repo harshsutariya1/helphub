@@ -17,8 +17,25 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _openSettings(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Settings'),
+        content: const Text('Settings screen coming soon!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authStateAsync = ref.watch(authStateProvider);
     final supabaseUser = ref.watch(currentUserProvider);
     final user = supabaseUser?.toUserProfile();
 
@@ -29,13 +46,37 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () => _openSettings(context),
           ),
         ],
       ),
-      body: user == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: authStateAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Text('Error: $error'),
+        ),
+        data: (authState) {
+          if (user == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.person_off, size: 64),
+                  const SizedBox(height: 16),
+                  const Text('Not signed in'),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () {
+                      // Navigate to sign-in screen
+                      // This assumes routing handles this automatically
+                    },
+                    child: const Text('Sign In'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(vertical: 24.0),
               child: Column(
                 children: [
@@ -112,7 +153,9 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
+            );
+        },
+      ),
     );
   }
 }
