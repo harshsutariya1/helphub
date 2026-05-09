@@ -65,6 +65,38 @@ class AuthService {
     }
   }
 
+  Future<UserResponse> updateUserProfile({
+    String? fullName,
+    String? username,
+    String? phone,
+    String? avatarUrl,
+  }) async {
+    logger.i('📝 Attempting to update user profile metadata');
+    try {
+      final updates = <String, dynamic>{};
+      if (fullName != null) updates['full_name'] = fullName;
+      if (username != null) updates['username'] = username;
+      if (phone != null) updates['phone'] = phone;
+      if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+
+      final response = await _supabase.auth.updateUser(
+        UserAttributes(data: updates),
+      );
+      logger.i('✅ Successfully updated user profile');
+      return response;
+    } on AuthException catch (e) {
+      logger.w('⚠️ Supabase Auth error during profile update', error: e);
+      rethrow;
+    } catch (e, st) {
+      logger.e(
+        '🛑 Unexpected error during profile update',
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
+  }
+
   Future<void> signOut() async {
     logger.i('🚪 Attempting to sign out user...');
     try {
