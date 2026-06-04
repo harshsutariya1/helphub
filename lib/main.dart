@@ -1,72 +1,32 @@
-import 'dart:ui';
-
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'package:helphub/router/app_router.dart';
-import 'package:helphub/utils/logger.dart';
-import 'package:helphub/widgets/app_init_error_screen.dart';
+import 'src/core/routing/app_router.dart';
+import 'src/core/theme/app_theme.dart';
+import 'src/core/utils/app_init.dart';
+import 'src/core/widgets/init_error_app.dart';
 
 void main() async {
-  _setupErrorHandlers();
-
   try {
-    WidgetsFlutterBinding.ensureInitialized();
-    await _initializeDependencies();
-
-    runApp(const ProviderScope(child: MyApp()));
-  } catch (e, stackTrace) {
-    logger.f(
-      '❌ Failed to initialize application',
-      error: e,
+    await initializeApp(
+      appRunner: () => runApp(const ProviderScope(child: MyApp())),
+    );
+    developer.log('App initialization completed successfully.', name: 'main');
+  } catch (error, stackTrace) {
+    developer.log(
+      'App initialization failed',
+      level: 1000,
+      name: 'main',
+      error: error,
       stackTrace: stackTrace,
     );
-    runApp(const AppInitErrorScreen());
+    await Sentry.captureException(error, stackTrace: stackTrace);
+
+    // If initialization fails, show an error screen instead of a blank screen
+    runApp(InitErrorApp(error: error));
   }
-}
-
-/// Configures global error handling for both Flutter API and Dart Platform errors.
-void _setupErrorHandlers() {
-  PlatformDispatcher.instance.onError = (error, stack) {
-    logger.f('🚨 Uncaught Platform Error', error: error, stackTrace: stack);
-    // TODO: Send to Crashlytics or Sentry here in production
-    return true; // Prevents the app from crashing entirely if possible
-  };
-
-  FlutterError.onError = (FlutterErrorDetails details) {
-    logger.f(
-      '🚨 Flutter Framework Error',
-      error: details.exception,
-      stackTrace: details.stack,
-    );
-    // TODO: Send to Crashlytics or Sentry here in production
-    FlutterError.presentError(details);
-  };
-}
-
-/// Initializes external services required before the app starts.
-Future<void> _initializeDependencies() async {
-  logger.i('🚀 Starting application initialization...');
-
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-  logger.d('✅ Environment variables loaded successfully.');
-
-  final supabaseUrl = dotenv.env['SUPABASE_URL'];
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-
-  if (supabaseUrl == null || supabaseUrl.trim().isEmpty ||
-      supabaseAnonKey == null || supabaseAnonKey.trim().isEmpty) {
-    throw Exception('Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env file.');
-  }
-
-  // Initialize Backend DB
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-  logger.d('✅ Supabase initialized successfully.');
-
-  logger.i('🎉 Application initialization complete.');
 }
 
 class MyApp extends ConsumerWidget {
@@ -74,13 +34,13 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
+    final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: 'HelpHub',
-      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
       routerConfig: router,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
